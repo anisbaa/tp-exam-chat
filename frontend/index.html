@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Chat DevOps</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --message-own-bg: #4f46e5;
+            --message-other-bg: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        header {
+            padding: 20px;
+            background-color: rgba(30, 41, 59, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .status {
+            font-size: 0.8rem;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        #chat-window {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.own {
+            align-self: flex-end;
+            background-color: var(--message-own-bg);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background-color: var(--message-other-bg);
+            color: var(--text-color);
+            border-bottom-left-radius: 2px;
+        }
+
+        .message-meta {
+            font-size: 0.7rem;
+            margin-bottom: 4px;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .message-time {
+            font-size: 0.65rem;
+            opacity: 0.6;
+        }
+
+        .input-area {
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #0f172a;
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        #username {
+            width: 30%;
+        }
+
+        #message-input {
+            flex: 1;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>💬 DevOps Chat</h1>
+        <div class="status">En ligne</div>
+    </header>
+
+    <div id="chat-window">
+        <!-- Messages will appear here -->
+        <div style="text-align: center; color: var(--text-secondary); margin-top: 20px;">
+            Bienvenue ! Commencez à discuter.
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="user-input">
+            <input type="text" id="username" placeholder="Pseudo" value="Anonyme">
+            <input type="text" id="message-input" placeholder="Écrivez votre message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Envoyer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuration - CHANGE THIS URL AFTER DEPLOYING BACKEND
+    // For local dev, it might be http://localhost:3000
+    // For production, it will be your Render URL
+    let API_URL = 'http://localhost:3000'; 
+
+    // Try to detect if we are in production (basic check)
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // Placeholder - User needs to update this or we can make it dynamic if we had a build step
+        // For the exam, the user might need to hardcode the Render URL here before pushing, 
+        // or we can try to use a relative path if they were served from the same origin (which they aren't).
+        // We will leave a clear comment for the user.
+        console.warn("ATTENTION: Set the API_URL to your Render Backend URL!");
+    }
+
+    const chatWindow = document.getElementById('chat-window');
+    const usernameInput = document.getElementById('username');
+    const messageInput = document.getElementById('message-input');
+
+    let lastMessageCount = 0;
+
+    async function fetchMessages() {
+        try {
+            const response = await fetch(`${API_URL}/api/messages`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const messages = await response.json();
+            
+            if (messages.length !== lastMessageCount) {
+                renderMessages(messages);
+                lastMessageCount = messages.length;
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    }
+
+    function renderMessages(messages) {
+        chatWindow.innerHTML = '';
+        const currentUser = usernameInput.value.trim();
+
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            const isOwn = msg.author === currentUser;
+            div.className = `message ${isOwn ? 'own' : 'other'}`;
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            div.innerHTML = `
+                <div class="message-meta">
+                    <span>${msg.author}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">${msg.content}</div>
+            `;
+            chatWindow.appendChild(div);
+        });
+    }
+
+    async function sendMessage() {
+        const author = usernameInput.value.trim();
+        const content = messageInput.value.trim();
+
+        if (!author || !content) return;
+
+        try {
+            const response = await fetch(`${API_URL}/api/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ author, content })
+            });
+
+            if (response.ok) {
+                messageInput.value = '';
+                fetchMessages(); // Refresh immediately
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            alert('Erreur lors de l\'envoi du message');
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Auto-refresh every 3 seconds
+    setInterval(fetchMessages, 3000);
+    
+    // Initial fetch
+    fetchMessages();
+</script>
+
+</body>
+</html>
